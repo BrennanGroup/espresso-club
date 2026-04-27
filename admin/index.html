@@ -389,7 +389,7 @@ function adminLogout() {
     <div class="card">
       <div class="card-title">Email settings</div>
       <label>Club name</label>
-      <input type="text" id="b-club" value="The Espresso Club"/>
+      <input type="text" id="b-club" value="Espresso Club"/>
       <label>Your name</label>
       <input type="text" id="b-org" value="Paul"/>
     </div>
@@ -728,11 +728,15 @@ async function generateEmail() {
     ).join('\n');
 
     const email =
-`Subject: ${club} — coffee bill for ${monthName}
+`Subject: ${club} — fees for ${monthName}
 
 Hi all,
 
-Here is the coffee tally for ${monthName}. Please transfer your amount to the usual account by the end of the month.
+Here is the coffee tally for ${monthName}. Please send your payment
+XX-XX-XXX
+XXXXXXXXX 
+or cash on my desk with your name on a note, or leave with Sasha.
+
 
 ${header}
 ${line}
