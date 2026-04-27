@@ -15,3 +15,7 @@ const PRICE_DOUBLE = 0.75;
 // Your club name (appears in the billing email)
 const CLUB_NAME     = 'Espresso Club';
 const ORGANISER     = 'Paul';
+
+// Admin password hash (SHA-256 of "espresso-club-v1" + password)
+// Do NOT commit the plain password here.
+const ADMIN_PW_HASH = '7334c6ef074e40ce874c87f5eccf6e8613440499571d25ffe5635b3988d089e6';
