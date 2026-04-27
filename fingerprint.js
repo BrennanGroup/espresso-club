@@ -1,10 +1,9 @@
 // =============================================================
 // fingerprint.js — lightweight device fingerprinting
-// Produces a stable ~40-char hex ID from browser attributes.
-// Not cryptographic — suitable for a trusted club environment.
+// Uses a simple hash so it works on all browsers, no crypto API needed.
 // =============================================================
 
-async function getDeviceId() {
+function getDeviceId() {
   const raw = [
     navigator.userAgent,
     navigator.language,
@@ -15,8 +14,20 @@ async function getDeviceId() {
     navigator.platform || '',
   ].join('|');
 
-  // SHA-256 via SubtleCrypto (available in all modern browsers over HTTPS)
-  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-  const hex  = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  return hex.slice(0, 40); // 40 hex chars is plenty
+  // Simple FNV-1a-like hash, returns 40 hex chars
+  let h1 = 0x811c9dc5, h2 = 0xdeadbeef;
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 16777619);
+    h2 = Math.imul(h2 ^ c, 2246822519);
+  }
+  h1 = (h1 ^ (h1 >>> 16)) >>> 0;
+  h2 = (h2 ^ (h2 >>> 13)) >>> 0;
+  // Mix and pad to 40 hex chars
+  const hex = (h1.toString(16).padStart(8, '0') +
+               h2.toString(16).padStart(8, '0') +
+               (h1 ^ h2).toString(16).padStart(8, '0') +
+               ((h1 + h2) >>> 0).toString(16).padStart(8, '0') +
+               ((h1 * 31 + h2) >>> 0).toString(16).padStart(8, '0'));
+  return hex.slice(0, 40);
 }
