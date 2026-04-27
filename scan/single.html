@@ -326,7 +326,7 @@ function showError(msg) {
 
 async function init() {
   try {
-    deviceId = await getDeviceId();
+    deviceId = getDeviceId();
     const member = await getMemberByDevice(deviceId);
 
     if (!member) {
