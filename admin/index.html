@@ -204,6 +204,75 @@ button {
 </head>
 <body>
 
+<!-- ============================================================ PASSWORD GATE -->
+<div id="lock-screen" style="position:fixed; inset:0; background:#0e0a05; z-index:9999;
+     display:flex; align-items:center; justify-content:center; padding:1.5rem;">
+  <div style="background:#1e140a; border:1px solid rgba(210,160,80,0.18);
+              border-radius:16px; padding:2rem 1.75rem; max-width:340px; width:100%;
+              text-align:center; box-shadow:0 0 60px rgba(200,146,42,0.08);">
+    <div style="font-size:48px; margin-bottom:1rem;">🔒</div>
+    <div style="font-size:1.3rem; color:#e8b84b; margin-bottom:0.4rem;">Admin Access</div>
+    <div style="font-size:0.85rem; color:#7a6a50; margin-bottom:1.5rem;">Espresso Club</div>
+    <input type="password" id="lock-pw" placeholder="Password"
+           style="width:100%; padding:11px 14px; background:#161008;
+                  border:1px solid rgba(210,160,80,0.28); border-radius:10px;
+                  color:#f0e6d0; font-family:Georgia,serif; font-size:1rem;
+                  margin-bottom:1rem; outline:none;"
+           onkeydown="if(event.key==='Enter') checkLock()"/>
+    <button onclick="checkLock()"
+            style="width:100%; padding:12px; background:#c8922a; color:#1a0e00;
+                   border:none; border-radius:10px; font-family:Georgia,serif;
+                   font-size:1rem; font-weight:bold; cursor:pointer;">Unlock</button>
+    <div id="lock-error" style="color:#c0504a; font-size:0.85rem;
+         margin-top:0.85rem; display:none;">Incorrect password</div>
+  </div>
+</div>
+
+<script>
+// SHA-256 implementation (no crypto.subtle — works on http and all browsers)
+async function sha256Hex(str) {
+  if (window.crypto && window.crypto.subtle) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  // Fallback (rare): block access if no crypto available
+  return null;
+}
+
+const LOCK_KEY = 'espresso-admin-unlocked-until';
+const LOCK_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function isUnlocked() {
+  const t = parseInt(localStorage.getItem(LOCK_KEY) || '0', 10);
+  return t > Date.now();
+}
+
+async function checkLock() {
+  const pw  = document.getElementById('lock-pw').value;
+  const hash = await sha256Hex('espresso-club-v1' + pw);
+  if (hash === ADMIN_PW_HASH) {
+    localStorage.setItem(LOCK_KEY, String(Date.now() + LOCK_DURATION_MS));
+    document.getElementById('lock-screen').style.display = 'none';
+  } else {
+    document.getElementById('lock-error').style.display = 'block';
+    document.getElementById('lock-pw').value = '';
+  }
+}
+
+// Check on load
+if (isUnlocked()) {
+  document.getElementById('lock-screen').style.display = 'none';
+} else {
+  setTimeout(() => document.getElementById('lock-pw').focus(), 100);
+}
+
+// Optional: a way to log out manually
+function adminLogout() {
+  localStorage.removeItem(LOCK_KEY);
+  location.reload();
+}
+</script>
+  
 <nav>
   <div class="nav-brand">☕ Espresso Club <span>Admin</span></div>
   <div class="tabs">
