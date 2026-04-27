@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <meta name="theme-color" content="#1a1008"/>
-<title>Single Shot — Espresso Club</title>
+<title>Double Shot — Espresso Club</title>
 <script src="../config.js"></script>
 <script src="../fingerprint.js"></script>
 <style>
@@ -179,7 +179,7 @@
 
 <div class="card">
   <div class="cup">☕</div>
-  <h1 id="card-title">Single Shot</h1>
+  <h1 id="card-title">Double Shot</h1>
   <p class="subtitle" id="card-sub">Espresso Club</p>
 
   <!-- Loading -->
@@ -203,7 +203,7 @@
   <div class="state" id="state-success">
     <div class="tick-circle">✓</div>
     <div class="success-name" id="success-name"></div>
-    <div class="shot-badge" id="success-badge">1 × single shot</div>
+    <div class="shot-badge" id="success-badge">1 × double shot</div>
     <p style="font-size:0.85rem; color:var(--muted); line-height:1.6;">Logged successfully.<br>See you tomorrow.</p>
     <div class="running-total" id="running-total"></div>
   </div>
@@ -220,7 +220,7 @@
 <div class="wordmark">The Espresso Club</div>
 
 <script>
-const SHOT_TYPE = 'single';
+const SHOT_TYPE = 'double';
 let deviceId = null;
 
 function showState(name) {
@@ -300,12 +300,12 @@ async function registerAndLog() {
     return;
   }
 
-  showSuccess(member.name, { singles: SHOT_TYPE === 'single' ? 1 : 0, doubles: SHOT_TYPE === 'double' ? 1 : 0 });
+  showSuccess(member.name, { singles: 0, doubles: 1 });
 }
 
 function showSuccess(name, counts) {
   document.getElementById('success-name').textContent = name;
-  document.getElementById('success-badge').textContent = SHOT_TYPE === 'single' ? '1 × single shot' : '1 × double shot';
+  document.getElementById('success-badge').textContent = SHOT_TYPE === 'single' ? '1 × double shot' : '1 × double shot';
 
   const total = counts.singles + counts.doubles;
   if (total > 0) {
