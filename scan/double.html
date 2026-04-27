@@ -6,7 +6,27 @@
 <meta name="theme-color" content="#1a1008"/>
 <title>Double Shot — Espresso Club</title>
 <script src="../config.js"></script>
-<script src="../fingerprint.js"></script>
+<script>
+function getDeviceId() {
+  const raw = [
+    navigator.userAgent || '',
+    navigator.language || '',
+    (screen.width || 0) + 'x' + (screen.height || 0),
+    screen.colorDepth || 0,
+    (Intl && Intl.DateTimeFormat) ? Intl.DateTimeFormat().resolvedOptions().timeZone : '',
+    navigator.hardwareConcurrency || '',
+    navigator.platform || ''
+  ].join('|');
+  let h1 = 0x811c9dc5, h2 = 0xdeadbeef;
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw.charCodeAt(i);
+    h1 = ((h1 ^ c) * 16777619) >>> 0;
+    h2 = ((h2 ^ c) * 2246822519) >>> 0;
+  }
+  const pad = (n) => n.toString(16).padStart(8, '0');
+  return (pad(h1) + pad(h2) + pad((h1 ^ h2) >>> 0) + pad((h1 + h2) >>> 0) + pad((h1 * 31 + h2) >>> 0)).slice(0, 40);
+}
+</script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
