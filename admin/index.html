@@ -308,10 +308,10 @@ function adminLogout() {
               <th style="padding-left:1.25rem;">Member</th>
               <th>Singles</th>
               <th>Doubles</th>
-              <th>Total shots</th>
+              <th>Total</th>
               <th>Owed</th>
-            </tr>
-          </thead>
+             </tr>
+            </thead>
           <tbody id="dash-tbody"></tbody>
         </table>
       </div>
@@ -321,6 +321,16 @@ function adminLogout() {
   <div id="dash-error" style="display:none;" class="notice notice-warn"></div>
 </div>
 
+<div class="card" style="margin-top:1rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+      <div class="card-title" style="margin:0;">Manual adjustments</div>
+      <button class="btn-outline" onclick="loadAdjustments()" style="padding:4px 10px; font-size:0.75rem;">↺</button>
+    </div>
+    <div id="adj-log"></div>
+  </div>
+
+</div>
+<!-- end panel-dashboard -->
 <!-- ============================================================ MEMBERS -->
 <div class="panel" id="panel-members">
 
@@ -461,7 +471,7 @@ function showTab(name) {
   const tabs = ['dashboard','members','billing','qr'];
   document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
   document.getElementById('panel-'+name).classList.add('active');
-  if (name === 'dashboard') loadDashboard();
+  if (name === 'dashboard') { loadDashboard(); loadAdjustments(); }
   if (name === 'members')   loadMembers();
   if (name === 'billing')   { initBillingMonths(); generateEmail(); }
   if (name === 'qr')        renderQRCodes();
@@ -557,22 +567,42 @@ async function loadDashboard() {
       <div class="metric"><div class="metric-label">Total owed</div><div class="metric-val">£${totalOwed.toFixed(2)}</div></div>
     `;
 
-    document.getElementById('dash-tbody').innerHTML = rows.length
-      ? rows.map(r => `
-          <tr>
-            <td style="padding-left:1.25rem;">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div class="avatar">${r.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
-                <span>${r.name}</span>
-              </div>
-            </td>
-            <td>${r.singles}</td>
-            <td>${r.doubles}</td>
-            <td>${r.singles + r.doubles*2}</td>
-            <td style="color:var(--gold-lt);">£${r.owed.toFixed(2)}</td>
-          </tr>`)
-        .join('')
-      : `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:1.5rem;">No shots logged this month.</td></tr>`;
+function adjustBtn(memberId, memberName, shotType, delta, currentCount) {
+  const disabled = (delta < 0 && currentCount === 0) ? 'disabled' : '';
+  const opacity  = (delta < 0 && currentCount === 0) ? '0.3' : '1';
+  return `<button onclick="adjustShot('${memberId}','${memberName.replace(/'/g,"\\'")}','${shotType}',${delta})"
+            ${disabled}
+            style="width:24px; height:24px; padding:0; line-height:1;
+                   font-size:14px; background:var(--card2); color:var(--gold-lt);
+                   border:1px solid var(--border2); border-radius:6px;
+                   cursor:${disabled ? 'not-allowed' : 'pointer'}; opacity:${opacity};
+                   margin:0 2px; vertical-align:middle;">${delta > 0 ? '+' : '−'}</button>`;
+}
+
+document.getElementById('dash-tbody').innerHTML = rows.length
+  ? rows.map(r => `
+      <tr>
+        <td style="padding-left:1.25rem;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="avatar">${r.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
+            <span>${r.name}</span>
+          </div>
+        </td>
+        <td style="white-space:nowrap;">
+          ${adjustBtn(r.id, r.name, 'single', -1, r.singles)}
+          <span style="display:inline-block; min-width:20px; text-align:center;">${r.singles}</span>
+          ${adjustBtn(r.id, r.name, 'single', +1, r.singles)}
+        </td>
+        <td style="white-space:nowrap;">
+          ${adjustBtn(r.id, r.name, 'double', -1, r.doubles)}
+          <span style="display:inline-block; min-width:20px; text-align:center;">${r.doubles}</span>
+          ${adjustBtn(r.id, r.name, 'double', +1, r.doubles)}
+        </td>
+        <td>${r.singles + r.doubles*2}</td>
+        <td style="color:var(--gold-lt);">£${r.owed.toFixed(2)}</td>
+      </tr>`)
+    .join('')
+  : `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:1.5rem;">No shots logged this month.</td></tr>`;
 
     document.getElementById('dash-loading').style.display = 'none';
     document.getElementById('dash-content').style.display = 'block';
@@ -680,7 +710,7 @@ async function generateEmail() {
       const singles = mine.filter(s => s.shot_type === 'single').length;
       const doubles = mine.filter(s => s.shot_type === 'double').length;
       return { ...mem, singles, doubles, owed: singles*ps + doubles*pd };
-    }).filter(r => r.singles + r.doubles > 0);
+    });
 
     const totalOwed = rows.reduce((a,r) => a + r.owed, 0);
 
@@ -782,6 +812,90 @@ function downloadQR(type) {
 // ----------------------------------------------------------------
 initMonthSelects();
 loadDashboard();
+loadAdjustments();
+// ----------------------------------------------------------------
+// Manual shot adjustment
+// ----------------------------------------------------------------
+async function adjustShot(memberId, memberName, shotType, delta) {
+  const mv = document.getElementById('month-sel').value;
+  const [y, m] = mv.split('-').map(Number);
+  const monthStart = new Date(y, m-1, 1);
+  const monthEnd   = new Date(y, m,   1);
+  const isCurrentMonth = (y === new Date().getFullYear() && m === new Date().getMonth() + 1);
+
+  if (delta > 0) {
+    // Add a shot. If current month, use now; else use mid-month timestamp.
+    const ts = isCurrentMonth
+      ? new Date().toISOString()
+      : new Date(y, m-1, 15, 12, 0, 0).toISOString();
+    const r = await sb('shots', 'POST', {
+      device_id: 'manual-admin',
+      member_id: memberId,
+      shot_type: shotType,
+      logged_at: ts,
+    });
+    if (!r.ok) { toast('Could not add shot'); return; }
+  } else {
+    // Remove the most recent shot of this type for this member in this month
+    const find = await sb(
+      'shots?member_id=eq.' + memberId +
+      '&shot_type=eq.' + shotType +
+      '&logged_at=gte.' + monthStart.toISOString() +
+      '&logged_at=lt.'  + monthEnd.toISOString() +
+      '&order=logged_at.desc&limit=1&select=id'
+    );
+    if (!find.ok || !find.data || !find.data.length) { toast('Nothing to remove'); return; }
+    const del = await sb('shots?id=eq.' + find.data[0].id, 'DELETE');
+    if (!del.ok) { toast('Could not remove shot'); return; }
+  }
+
+  // Log the adjustment
+  await sb('shot_adjustments', 'POST', {
+    member_id: memberId,
+    member_name: memberName,
+    shot_type: shotType,
+    delta: delta,
+    for_month: monthStart.toISOString().slice(0,10),
+  });
+
+  toast((delta > 0 ? '+1 ' : '−1 ') + shotType + ' for ' + memberName);
+  loadDashboard();
+  loadAdjustments();
+}
+
+// ----------------------------------------------------------------
+// Adjustment audit log
+// ----------------------------------------------------------------
+async function loadAdjustments() {
+  const r = await sb('shot_adjustments?select=*&order=adjusted_at.desc&limit=20');
+  const el = document.getElementById('adj-log');
+  if (!el) return;
+
+  if (!r.ok || !r.data || !r.data.length) {
+    el.innerHTML = '<div style="color:var(--muted); font-size:0.85rem; padding:0.5rem 0;">No manual adjustments yet.</div>';
+    return;
+  }
+
+  el.innerHTML = r.data.map(a => {
+    const when = new Date(a.adjusted_at);
+    const dateStr = when.toLocaleDateString('en-GB', { day:'numeric', month:'short' }) +
+                    ' ' + when.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    const monthName = new Date(a.for_month).toLocaleDateString('en-GB', { month:'long', year:'numeric' });
+    const sign = a.delta > 0 ? '+' : '−';
+    const colour = a.delta > 0 ? 'var(--gold-lt)' : '#c0504a';
+    return `<div style="display:flex; align-items:center; justify-content:space-between;
+                        padding:8px 0; border-bottom:1px solid var(--border); font-size:0.82rem;">
+              <div>
+                <span style="color:${colour}; font-weight:bold; margin-right:6px;">${sign}1</span>
+                <span>${a.shot_type}</span>
+                <span style="color:var(--muted2); margin:0 6px;">·</span>
+                <span style="color:var(--cream);">${a.member_name}</span>
+                <span style="color:var(--muted); margin-left:8px;">for ${monthName}</span>
+              </div>
+              <div style="color:var(--muted); font-size:0.75rem;">${dateStr}</div>
+            </div>`;
+  }).join('');
+}
 </script>
 </body>
 </html>
