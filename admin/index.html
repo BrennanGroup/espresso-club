@@ -1,1 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — Espresso Club</title>
+<script src="../config.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --bg:       #0e0a05;
+  --surface:  #161008;
+  --card:     #1e140a;
+  --card2:    #231a0e;
+  --border:   rgba(210,160,80,0.15);
+  --border2:  rgba(210,160,80,0.28);
+  --gold:     #c8922a;
+  --gold-lt:  #e8b84b;
+  --cream:    #f0e6d0;
+  --muted:    #7a6a50;
+  --muted2:   #a08860;
+  --danger:   #c0504a;
+  --success:  #5a9e6a;
+  --radius:   12px;
+  --font:     'Georgia', serif;
+  --mono:     'Courier New', monospace;
+}
+
+html { background: var(--bg); color: var(--cream); font-family: var(--font); font-size: 15px; }
+body { max-width: 900px; margin: 0 auto; padding: 0 1.25rem 4rem; }
+
+/* --- NAV --- */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 0 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.75rem;
+}
+.nav-brand { font-size: 1.05rem; color: var(--gold-lt); letter-spacing: 0.05em; }
+.nav-brand span { color: var(--muted2); font-size: 0.75rem; margin-left: 8px; }
+
+.tabs { display: flex; gap: 4px; }
+.tab {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--muted2);
+  background: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tab:hover { color: var(--cream); background: var(--card); }
+.tab.active { background: var(--card); border-color: var(--border2); color: var(--gold-lt); }
+
+/* --- PANELS --- */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* --- CARDS --- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+.card-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted2);
+  margin-bottom: 0.85rem;
+}
+
+/* --- METRICS --- */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-bottom: 1rem; }
+.metric { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+.metric-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+.metric-val { font-size: 1.6rem; color: var(--gold-lt); }
+.metric-sub { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+/* --- TABLE --- */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th {
+  text-align: left;
+  padding: 7px 10px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  font-weight: normal;
+}
+td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(200,146,42,0.04); }
+
+/* --- FORMS --- */
+label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted2); margin-bottom: 5px; }
+input[type="text"], input[type="email"], input[type="number"], select {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--cream);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 10px;
+}
+input:focus, select:focus { border-color: var(--gold); }
+select option { background: var(--surface); }
+
+/* --- BUTTONS --- */
+button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+}
+.btn-gold { background: var(--gold); color: #1a0e00; border: none; font-weight: bold; }
+.btn-gold:hover { background: var(--gold-lt); }
+.btn-outline { background: none; border: 1px solid var(--border2); color: var(--cream); }
+.btn-outline:hover { background: var(--card2); }
+.btn-danger { background: none; border: 1px solid rgba(192,80,74,0.35); color: var(--danger); }
+.btn-danger:hover { background: rgba(192,80,74,0.1); }
+
+/* --- MISC --- */
+.row { display: flex; gap: 10px; align-items: flex-end; }
+.col { flex: 1; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.badge {
+  display: inline-block; padding: 2px 10px;
+  border-radius: 99px; font-size: 0.72rem;
+  border: 1px solid var(--border2); color: var(--gold-lt);
+  letter-spacing: 0.04em;
+}
+.notice {
+  padding: 10px 14px; border-radius: 8px; font-size: 0.82rem; line-height: 1.6;
+  border: 1px solid; margin-bottom: 1rem;
+}
+.notice-warn { background: rgba(200,146,42,0.07); border-color: rgba(200,146,42,0.25); color: var(--gold-lt); }
+.notice-info { background: rgba(90,158,106,0.07); border-color: rgba(90,158,106,0.25); color: #7fc490; }
+
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.email-preview {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  white-space: pre;
+  background: var(--surface);
+  padding: 1.25rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  line-height: 1.75;
+  color: var(--cream);
+  border: 1px solid var(--border);
+}
+
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(200,146,42,0.15);
+  border: 1px solid var(--border2);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; color: var(--gold-lt);
+  flex-shrink: 0;
+}
+
+.device-id {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+#toast {
+  position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+  background: var(--card2); border: 1px solid var(--border2);
+  color: var(--gold-lt); padding: 10px 20px; border-radius: 99px;
+  font-size: 0.82rem; opacity: 0; transition: opacity 0.3s;
+  pointer-events: none; z-index: 999;
+}
+#toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">☕ Espresso Club <span>Admin</span></div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="showTab('members')">Members</button>
+    <button class="tab" onclick="showTab('billing')">Billing</button>
+    <button class="tab" onclick="showTab('qr')">QR Codes</button>
+  </div>
+</nav>
+
+<!-- ============================================================ DASHBOARD -->
+<div class="panel active" id="panel-dashboard">
+
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+    <div style="font-size:1.1rem; color:var(--gold-lt);">Monthly overview</div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <select id="month-sel" style="width:auto; margin:0;" onchange="loadDashboard()"></select>
+      <button class="btn-outline" onclick="loadDashboard()" style="padding:7px 12px;">↺ Refresh</button>
+    </div>
+  </div>
+
+  <div id="dash-loading" style="text-align:center; padding:2rem; color:var(--muted);">
+    <div class="spinner"></div> <span style="margin-left:8px;">Loading…</span>
+  </div>
+
+  <div id="dash-content" style="display:none;">
+    <div class="metrics" id="dash-metrics"></div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="padding-left:1.25rem;">Member</th>
+              <th>Singles</th>
+              <th>Doubles</th>
+              <th>Total shots</th>
+              <th>Owed</th>
+            </tr>
+          </thead>
+          <tbody id="dash-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="dash-error" style="display:none;" class="notice notice-warn"></div>
+</div>
+
+<!-- ============================================================ MEMBERS -->
+<div class="panel" id="panel-members">
+
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+    <div style="font-size:1.1rem; color:var(--gold-lt);">Members</div>
+    <button class="btn-gold" onclick="toggleAddForm()">+ Add member</button>
+  </div>
+
+  <div class="card" id="add-form" style="display:none; margin-bottom:1rem;">
+    <div class="card-title">New member</div>
+    <div class="grid2">
+      <div><label>Name</label><input type="text" id="new-name" placeholder="Alice"/></div>
+      <div><label>Email</label><input type="email" id="new-email" placeholder="alice@example.com"/></div>
+    </div>
+    <div class="row" style="justify-content:flex-end; gap:8px; margin-top:4px;">
+      <button class="btn-outline" onclick="toggleAddForm()">Cancel</button>
+      <button class="btn-gold" onclick="addMember()">Add</button>
+    </div>
+  </div>
+
+  <div id="members-loading" style="text-align:center; padding:2rem; color:var(--muted);">
+    <div class="spinner"></div>
+  </div>
+  <div class="card" style="padding:0; overflow:hidden; display:none;" id="members-card">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="padding-left:1.25rem;">Name</th>
+            <th>Email</th>
+            <th>Device ID</th>
+            <th>Since</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="members-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="members-error" style="display:none;" class="notice notice-warn"></div>
+</div>
+
+<!-- ============================================================ BILLING -->
+<div class="panel" id="panel-billing">
+
+  <div style="font-size:1.1rem; color:var(--gold-lt); margin-bottom:1rem;">Billing email</div>
+
+  <div class="grid2" style="margin-bottom:1rem;">
+    <div class="card">
+      <div class="card-title">Pricing</div>
+      <label>Single shot (£)</label>
+      <input type="number" id="p-single" value="0.30" step="0.05" min="0"/>
+      <label>Double shot (£)</label>
+      <input type="number" id="p-double" value="0.50" step="0.05" min="0"/>
+    </div>
+    <div class="card">
+      <div class="card-title">Email settings</div>
+      <label>Club name</label>
+      <input type="text" id="b-club" value="The Espresso Club"/>
+      <label>Your name</label>
+      <input type="text" id="b-org" value="Paul"/>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+    <select id="bill-month" style="width:auto; margin:0;"></select>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-outline" onclick="generateEmail()">Generate</button>
+      <button class="btn-gold" onclick="openGmail()">Open in Gmail ↗</button>
+    </div>
+  </div>
+
+  <div class="email-preview" id="email-out">Click Generate to produce this month's billing email.</div>
+
+  <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+    <button class="btn-outline" onclick="copyEmail()">Copy to clipboard</button>
+  </div>
+</div>
+
+<!-- ============================================================ QR CODES -->
+<div class="panel" id="panel-qr">
+
+  <div style="font-size:1.1rem; color:var(--gold-lt); margin-bottom:1rem;">QR Codes</div>
+
+  <div class="notice notice-warn" style="margin-bottom:1.25rem;">
+    Replace <strong>YOUR_GITHUB_USERNAME</strong> and <strong>YOUR_REPO</strong> below with your actual GitHub Pages URL once deployed.
+  </div>
+
+  <div class="grid2">
+    <div class="card" style="text-align:center;">
+      <div class="card-title" style="margin-bottom:1rem;">Single shot</div>
+      <div id="qr-single" style="display:flex; justify-content:center; margin-bottom:1rem;"></div>
+      <div style="font-size:0.75rem; color:var(--muted); font-family:var(--mono); word-break:break-all; margin-bottom:1rem;" id="url-single"></div>
+      <button class="btn-outline" onclick="downloadQR('single')">Download PNG</button>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="card-title" style="margin-bottom:1rem;">Double shot</div>
+      <div id="qr-double" style="display:flex; justify-content:center; margin-bottom:1rem;"></div>
+      <div style="font-size:0.75rem; color:var(--muted); font-family:var(--mono); word-break:break-all; margin-bottom:1rem;" id="url-double"></div>
+      <button class="btn-outline" onclick="downloadQR('double')">Download PNG</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:0.5rem;">
+    <div class="card-title">Your GitHub Pages URL</div>
+    <div class="row" style="align-items:flex-end;">
+      <div class="col">
+        <label>Base URL (update when deployed)</label>
+        <input type="text" id="base-url" placeholder="https://brennangroup.github.io/espresso-club"
+               oninput="renderQRCodes()" style="margin:0;"/>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- QR code library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<script>
+// ----------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tabs = ['dashboard','members','billing','qr'];
+  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'members')   loadMembers();
+  if (name === 'billing')   { initBillingMonths(); generateEmail(); }
+  if (name === 'qr')        renderQRCodes();
+}
+
+function initMonthSelects() {
+  const now = new Date();
+  ['month-sel','bill-month'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const val = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+      sel.appendChild(opt);
+    }
+  });
+}
+
+function initBillingMonths() { /* already done in initMonthSelects */ }
+
+// ----------------------------------------------------------------
+// Supabase fetch wrapper
+// ----------------------------------------------------------------
+async function sb(path, method='GET', body=null, extra={}) {
+  const headers = {
+    'apikey': SUPABASE_ANON,
+    'Authorization': 'Bearer ' + SUPABASE_ANON,
+    'Content-Type': 'application/json',
+  };
+  if (method === 'POST') headers['Prefer'] = 'return=representation';
+  Object.assign(headers, extra);
+
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    method, headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  return { ok: res.ok, status: res.status, data: text ? JSON.parse(text) : null };
+}
+
+// ----------------------------------------------------------------
+// Dashboard
+// ----------------------------------------------------------------
+async function loadDashboard() {
+  document.getElementById('dash-loading').style.display = 'block';
+  document.getElementById('dash-content').style.display = 'none';
+  document.getElementById('dash-error').style.display = 'none';
+
+  try {
+    const mv = document.getElementById('month-sel').value;
+    const [y, m] = mv.split('-').map(Number);
+    const start = new Date(y, m-1, 1).toISOString();
+    const end   = new Date(y, m,   1).toISOString();
+
+    // Fetch members
+    const mRes = await sb('members?select=id,name,email&order=name');
+    if (!mRes.ok) throw new Error('Could not load members');
+    const members = mRes.data || [];
+
+    // Fetch shots for month
+    const sRes = await sb(
+      'shots?select=member_id,shot_type' +
+      '&logged_at=gte.' + start +
+      '&logged_at=lt.'  + end
+    );
+    if (!sRes.ok) throw new Error('Could not load shots');
+    const shots = sRes.data || [];
+
+    const ps = parseFloat(document.getElementById('p-single')?.value || PRICE_SINGLE);
+    const pd = parseFloat(document.getElementById('p-double')?.value || PRICE_DOUBLE);
+
+    let totalSingles = 0, totalDoubles = 0;
+
+    const rows = members.map(mem => {
+      const mine = shots.filter(s => s.member_id === mem.id);
+      const singles = mine.filter(s => s.shot_type === 'single').length;
+      const doubles = mine.filter(s => s.shot_type === 'double').length;
+      totalSingles += singles;
+      totalDoubles += doubles;
+      const owed = singles * ps + doubles * pd;
+      return { ...mem, singles, doubles, owed };
+    }).filter(r => r.singles + r.doubles > 0);
+
+    const totalOwed = totalSingles * ps + totalDoubles * pd;
+
+    document.getElementById('dash-metrics').innerHTML = `
+      <div class="metric"><div class="metric-label">Singles</div><div class="metric-val">${totalSingles}</div></div>
+      <div class="metric"><div class="metric-label">Doubles</div><div class="metric-val">${totalDoubles}</div></div>
+      <div class="metric"><div class="metric-label">Total shots</div><div class="metric-val">${totalSingles + totalDoubles*2}</div></div>
+      <div class="metric"><div class="metric-label">Total owed</div><div class="metric-val">£${totalOwed.toFixed(2)}</div></div>
+    `;
+
+    document.getElementById('dash-tbody').innerHTML = rows.length
+      ? rows.map(r => `
+          <tr>
+            <td style="padding-left:1.25rem;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="avatar">${r.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
+                <span>${r.name}</span>
+              </div>
+            </td>
+            <td>${r.singles}</td>
+            <td>${r.doubles}</td>
+            <td>${r.singles + r.doubles*2}</td>
+            <td style="color:var(--gold-lt);">£${r.owed.toFixed(2)}</td>
+          </tr>`)
+        .join('')
+      : `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:1.5rem;">No shots logged this month.</td></tr>`;
+
+    document.getElementById('dash-loading').style.display = 'none';
+    document.getElementById('dash-content').style.display = 'block';
+
+  } catch(e) {
+    document.getElementById('dash-loading').style.display = 'none';
+    const err = document.getElementById('dash-error');
+    err.textContent = 'Error: ' + e.message + ' — check your Supabase credentials in config.js';
+    err.style.display = 'block';
+  }
+}
+
+// ----------------------------------------------------------------
+// Members
+// ----------------------------------------------------------------
+async function loadMembers() {
+  document.getElementById('members-loading').style.display = 'block';
+  document.getElementById('members-card').style.display = 'none';
+
+  try {
+    const r = await sb('members?select=id,name,email,device_id,created_at&order=name');
+    if (!r.ok) throw new Error('Could not load members (status ' + r.status + ')');
+    const members = r.data || [];
+
+    document.getElementById('members-tbody').innerHTML = members.length
+      ? members.map(m => `
+          <tr>
+            <td style="padding-left:1.25rem;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="avatar">${m.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
+                <span>${m.name}</span>
+              </div>
+            </td>
+            <td style="color:var(--muted2);">${m.email || '—'}</td>
+            <td><span class="device-id">${m.device_id ? m.device_id.slice(0,12)+'…' : 'not linked'}</span></td>
+            <td style="color:var(--muted);">${new Date(m.created_at).toLocaleDateString('en-GB')}</td>
+            <td><button class="btn-danger" onclick="deleteMember('${m.id}','${m.name.replace(/'/g,"\\'")}')">Remove</button></td>
+          </tr>`)
+        .join('')
+      : `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:1.5rem;">No members yet.</td></tr>`;
+
+    document.getElementById('members-loading').style.display = 'none';
+    document.getElementById('members-card').style.display = 'block';
+  } catch(e) {
+    document.getElementById('members-loading').style.display = 'none';
+    const err = document.getElementById('members-error');
+    err.textContent = 'Error: ' + e.message;
+    err.style.display = 'block';
+  }
+}
+
+function toggleAddForm() {
+  const f = document.getElementById('add-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+async function addMember() {
+  const name  = document.getElementById('new-name').value.trim();
+  const email = document.getElementById('new-email').value.trim();
+  if (!name) { toast('Name is required'); return; }
+
+  const r = await sb('members', 'POST', { name, email: email || null });
+  if (!r.ok) { toast('Error adding member'); return; }
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-email').value = '';
+  toggleAddForm();
+  toast('Member added');
+  loadMembers();
+}
+
+async function deleteMember(id, name) {
+  if (!confirm('Remove ' + name + ' and all their shot records?')) return;
+  // Delete shots first (FK), then member
+  await sb('shots?member_id=eq.'+id, 'DELETE');
+  const r = await sb('members?id=eq.'+id, 'DELETE');
+  if (r.ok) { toast('Removed ' + name); loadMembers(); }
+  else toast('Error removing member');
+}
+
+// ----------------------------------------------------------------
+// Billing email
+// ----------------------------------------------------------------
+async function generateEmail() {
+  const mv = document.getElementById('bill-month').value;
+  if (!mv) return;
+  const [y, m] = mv.split('-').map(Number);
+  const monthName = MONTHS[m-1] + ' ' + y;
+  const start = new Date(y, m-1, 1).toISOString();
+  const end   = new Date(y, m,   1).toISOString();
+  const ps = parseFloat(document.getElementById('p-single').value || PRICE_SINGLE);
+  const pd = parseFloat(document.getElementById('p-double').value || PRICE_DOUBLE);
+  const club = document.getElementById('b-club').value || CLUB_NAME;
+  const org  = document.getElementById('b-org').value  || ORGANISER;
+
+  document.getElementById('email-out').textContent = 'Loading…';
+
+  try {
+    const mRes = await sb('members?select=id,name,email&order=name');
+    const sRes = await sb('shots?select=member_id,shot_type&logged_at=gte.'+start+'&logged_at=lt.'+end);
+    const members = mRes.data || [];
+    const shots   = sRes.data || [];
+
+    const rows = members.map(mem => {
+      const mine = shots.filter(s => s.member_id === mem.id);
+      const singles = mine.filter(s => s.shot_type === 'single').length;
+      const doubles = mine.filter(s => s.shot_type === 'double').length;
+      return { ...mem, singles, doubles, owed: singles*ps + doubles*pd };
+    }).filter(r => r.singles + r.doubles > 0);
+
+    const totalOwed = rows.reduce((a,r) => a + r.owed, 0);
+
+    // Build plain-text table
+    const cols = [22, 9, 9, 13, 10];
+    const pad  = (s, n, right=false) => right ? String(s).padStart(n) : String(s).padEnd(n);
+    const line = '─'.repeat(cols.reduce((a,b)=>a+b,0));
+    const header = pad('Name',cols[0]) + pad('Singles',cols[1]) + pad('Doubles',cols[2]) + pad('Total shots',cols[3]) + pad('Owed',cols[4],true);
+    const dataRows = rows.map(r =>
+      pad(r.name,cols[0]) +
+      pad(r.singles,cols[1]) +
+      pad(r.doubles,cols[2]) +
+      pad(r.singles + r.doubles*2, cols[3]) +
+      pad('£'+r.owed.toFixed(2), cols[4], true)
+    ).join('\n');
+
+    const email =
+`Subject: ${club} — coffee bill for ${monthName}
+
+Hi all,
+
+Here is the coffee tally for ${monthName}. Please transfer your amount to the usual account by the end of the month.
+
+${header}
+${line}
+${dataRows}
+${line}
+${'TOTAL'.padEnd(cols[0]+cols[1]+cols[2]+cols[3])}${'£'+totalOwed.toFixed(2).padStart(cols[4])}
+
+Prices: single £${ps.toFixed(2)}, double £${pd.toFixed(2)}
+
+Thanks,
+${org}`;
+
+    document.getElementById('email-out').textContent = email;
+  } catch(e) {
+    document.getElementById('email-out').textContent = 'Error generating email: ' + e.message;
+  }
+}
+
+function copyEmail() {
+  const txt = document.getElementById('email-out').textContent;
+  navigator.clipboard.writeText(txt).then(() => toast('Copied to clipboard'));
+}
+
+function openGmail() {
+  const txt = document.getElementById('email-out').textContent;
+  const lines = txt.split('\n');
+  const subj = lines[0].replace('Subject: ', '').trim();
+  const body = lines.slice(2).join('\n').trim();
+  window.open('https://mail.google.com/mail/?view=cm&fs=1&su=' +
+    encodeURIComponent(subj) + '&body=' + encodeURIComponent(body), '_blank');
+}
+
+// ----------------------------------------------------------------
+// QR Codes
+// ----------------------------------------------------------------
+let qrSingle = null, qrDouble = null;
+
+function renderQRCodes() {
+  const base = (document.getElementById('base-url')?.value ||
+    'https://brennangroup.github.io/espresso-club').replace(/\/$/, '');
+
+  const urls = {
+    single: base + '/scan/single.html',
+    double: base + '/scan/double.html',
+  };
+
+  document.getElementById('url-single').textContent = urls.single;
+  document.getElementById('url-double').textContent = urls.double;
+
+  ['single','double'].forEach(type => {
+    const el = document.getElementById('qr-' + type);
+    el.innerHTML = '';
+    new QRCode(el, {
+      text: urls[type],
+      width: 180,
+      height: 180,
+      colorDark: '#c8922a',
+      colorLight: '#1e140a',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+  });
+}
+
+function downloadQR(type) {
+  const el = document.getElementById('qr-' + type);
+  const img = el.querySelector('img') || el.querySelector('canvas');
+  if (!img) return;
+  const src = img.tagName === 'CANVAS' ? img.toDataURL() : img.src;
+  const a = document.createElement('a');
+  a.href = src;
+  a.download = 'espresso-' + type + '-shot-qr.png';
+  a.click();
+}
+
+// ----------------------------------------------------------------
+// Init
+// ----------------------------------------------------------------
+initMonthSelects();
+loadDashboard();
+</script>
+</body>
+</html>
