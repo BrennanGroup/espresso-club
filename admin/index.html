@@ -569,7 +569,7 @@ function toast(msg) {
 function showTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  const tabs = ['dashboard','members','billing','qr'];
+  const tabs = ['dashboard','members','billing','payments','qr'];
   document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
   document.getElementById('panel-'+name).classList.add('active');
   if (name === 'dashboard') { loadDashboard(); loadAdjustments(); }
