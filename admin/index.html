@@ -621,6 +621,19 @@ async function sb(path, method='GET', body=null, extra={}) {
 // Dashboard
 // ----------------------------------------------------------------
 async function loadDashboard() {
+  // Helper for the +/− shot adjustment buttons
+  function adjustBtn(memberId, memberName, shotType, delta, currentCount) {
+    const disabled = (delta < 0 && currentCount === 0) ? 'disabled' : '';
+    const opacity  = (delta < 0 && currentCount === 0) ? '0.3' : '1';
+    return `<button onclick="adjustShot('${memberId}','${memberName.replace(/'/g,"\\'")}','${shotType}',${delta})"
+              ${disabled}
+              style="width:24px; height:24px; padding:0; line-height:1;
+                     font-size:14px; background:var(--card2); color:var(--gold-lt);
+                     border:1px solid var(--border2); border-radius:6px;
+                     cursor:${disabled ? 'not-allowed' : 'pointer'}; opacity:${opacity};
+                     margin:0 2px; vertical-align:middle;">${delta > 0 ? '+' : '−'}</button>`;
+  }
+  // ... rest of your existing loadDashboard code stays unchanged
   document.getElementById('dash-loading').style.display = 'block';
   document.getElementById('dash-content').style.display = 'none';
   document.getElementById('dash-error').style.display = 'none';
