@@ -362,6 +362,7 @@ function adminLogout() {
           <tr>
             <th style="padding-left:1.25rem;">Name</th>
             <th>Email</th>
+            <th>Bank aliases</th>
             <th>Device ID</th>
             <th>Since</th>
             <th></th>
@@ -749,26 +750,64 @@ async function loadMembers() {
   document.getElementById('members-card').style.display = 'none';
 
   try {
-    const r = await sb('members?select=id,name,email,device_id,created_at&order=name');
-    if (!r.ok) throw new Error('Could not load members (status ' + r.status + ')');
-    const members = r.data || [];
+    const [mRes, aRes] = await Promise.all([
+      sb('members?select=id,name,email,device_id,created_at&order=name'),
+      sb('member_aliases?select=id,member_id,alias,source'),
+    ]);
+    if (!mRes.ok) throw new Error('Could not load members (status ' + mRes.status + ')');
+    const members = mRes.data || [];
+    const aliases = aRes.data || [];
+
+    // Group aliases by member_id
+    const aliasesByMember = {};
+    aliases.forEach(a => {
+      if (!aliasesByMember[a.member_id]) aliasesByMember[a.member_id] = [];
+      aliasesByMember[a.member_id].push(a);
+    });
 
     document.getElementById('members-tbody').innerHTML = members.length
-      ? members.map(m => `
-          <tr>
-            <td style="padding-left:1.25rem;">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div class="avatar">${m.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
-                <span>${m.name}</span>
-              </div>
-            </td>
-            <td style="color:var(--muted2);">${m.email || '—'}</td>
-            <td><span class="device-id">${m.device_id ? m.device_id.slice(0,12)+'…' : 'not linked'}</span></td>
-            <td style="color:var(--muted);">${new Date(m.created_at).toLocaleDateString('en-GB')}</td>
-            <td><button class="btn-danger" onclick="deleteMember('${m.id}','${m.name.replace(/'/g,"\\'")}')">Remove</button></td>
-          </tr>`)
-        .join('')
-      : `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:1.5rem;">No members yet.</td></tr>`;
+      ? members.map(m => {
+          const myAliases = aliasesByMember[m.id] || [];
+          const aliasHtml = myAliases.length
+            ? myAliases.map(a => `
+                <span style="display:inline-flex; align-items:center; gap:4px;
+                             padding:2px 4px 2px 8px; margin:2px 4px 2px 0;
+                             border-radius:99px; font-size:0.72rem;
+                             border:1px solid var(--border2); color:var(--gold-lt);">
+                  ${a.alias}
+                  <button onclick="deleteAlias('${a.id}', '${a.alias.replace(/'/g,"\\'")}')"
+                          style="background:none; border:none; color:var(--muted);
+                                 cursor:pointer; padding:0 4px; font-size:1rem; line-height:1;"
+                          title="Remove this alias">×</button>
+                </span>`).join('')
+            : '<span style="color:var(--muted); font-size:0.78rem;">—</span>';
+
+          return `
+            <tr>
+              <td style="padding-left:1.25rem;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div class="avatar">${m.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
+                  <span>${m.name}</span>
+                </div>
+              </td>
+              <td style="color:var(--muted2);">${m.email || '—'}</td>
+              <td style="max-width:280px;">
+                <div style="display:flex; flex-wrap:wrap; align-items:center;">
+                  ${aliasHtml}
+                  <button onclick="addAliasPrompt('${m.id}','${m.name.replace(/'/g,"\\'")}')"
+                          style="background:none; border:1px dashed var(--border2);
+                                 color:var(--muted2); padding:2px 8px;
+                                 border-radius:99px; font-size:0.72rem;
+                                 cursor:pointer; margin:2px 0;"
+                          title="Add a manual alias">+ add</button>
+                </div>
+              </td>
+              <td><span class="device-id">${m.device_id ? m.device_id.slice(0,12)+'…' : 'not linked'}</span></td>
+              <td style="color:var(--muted);">${new Date(m.created_at).toLocaleDateString('en-GB')}</td>
+              <td><button class="btn-danger" onclick="deleteMember('${m.id}','${m.name.replace(/'/g,"\\'")}')">Remove</button></td>
+            </tr>`;
+        }).join('')
+      : `<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:1.5rem;">No members yet.</td></tr>`;
 
     document.getElementById('members-loading').style.display = 'none';
     document.getElementById('members-card').style.display = 'block';
@@ -780,32 +819,26 @@ async function loadMembers() {
   }
 }
 
-function toggleAddForm() {
-  const f = document.getElementById('add-form');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+async function deleteAlias(aliasId, aliasName) {
+  if (!confirm('Remove alias "' + aliasName + '"?')) return;
+  const r = await sb('member_aliases?id=eq.' + aliasId, 'DELETE');
+  if (r.ok) { toast('Alias removed'); loadMembers(); }
+  else toast('Could not remove alias');
 }
 
-async function addMember() {
-  const name  = document.getElementById('new-name').value.trim();
-  const email = document.getElementById('new-email').value.trim();
-  if (!name) { toast('Name is required'); return; }
+async function addAliasPrompt(memberId, memberName) {
+  const alias = prompt('Add a bank-statement name that should match "' + memberName + '":\n\n(e.g. "BITHELL J" or "ESPRESSOCLUB JESS")');
+  if (!alias) return;
+  const trimmed = alias.trim();
+  if (!trimmed) return;
 
-  const r = await sb('members', 'POST', { name, email: email || null });
-  if (!r.ok) { toast('Error adding member'); return; }
-  document.getElementById('new-name').value = '';
-  document.getElementById('new-email').value = '';
-  toggleAddForm();
-  toast('Member added');
-  loadMembers();
-}
-
-async function deleteMember(id, name) {
-  if (!confirm('Remove ' + name + ' and all their shot records?')) return;
-  // Delete shots first (FK), then member
-  await sb('shots?member_id=eq.'+id, 'DELETE');
-  const r = await sb('members?id=eq.'+id, 'DELETE');
-  if (r.ok) { toast('Removed ' + name); loadMembers(); }
-  else toast('Error removing member');
+  const r = await sb('member_aliases', 'POST', {
+    member_id: memberId,
+    alias: trimmed,
+    source: 'manual',
+  });
+  if (r.ok) { toast('Alias added'); loadMembers(); }
+  else toast('Alias already exists or save failed');
 }
 
 // ----------------------------------------------------------------
