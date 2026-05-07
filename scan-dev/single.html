@@ -283,11 +283,13 @@ async function proceedFromPick() {
     });
     currentMember = { id: memberId, name: allMembers.find(m => m.id === memberId).name };
   } else {
-    const r = await sb('members', 'POST', {
-      name: newName,
-      client_token: clientToken,
-      device_id: deviceId,
-    });
+  // New member: clear token from any prior member first, then create
+  await sb('members?client_token=eq.' + encodeURIComponent(clientToken), 'PATCH', { client_token: null });
+  const r = await sb('members', 'POST', {
+    name: newName,
+    client_token: clientToken,
+    device_id: deviceId,
+  });
     if (!r.ok || !r.data || !r.data[0]) { showError('Could not register. Try again.'); return; }
     currentMember = { id: r.data[0].id, name: r.data[0].name };
   }
