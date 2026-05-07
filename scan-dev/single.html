@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#1a1008"/>
+<title>[DEV] Single Shot — Espresso Club</title>
+<script src="../config.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0e0a05; --surface:#1c1208; --card:#231709;
+    --border:rgba(210,160,80,0.18); --gold:#c8922a; --gold-lt:#e8b84b;
+    --cream:#f0e6d0; --muted:#8a7a60;
+    --radius:16px; --font:'Georgia',serif;
+  }
+  html, body {
+    height:100%; background:var(--bg); color:var(--cream); font-family:var(--font);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100dvh; padding:1.5rem;
+  }
+  .dev-banner {
+    position:fixed; top:0; left:0; right:0;
+    background:#c0504a; color:white; text-align:center;
+    padding:6px; font-size:0.75rem; letter-spacing:0.1em;
+    text-transform:uppercase; z-index:1000;
+  }
+  .card {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:2rem 1.75rem; width:100%; max-width:360px; text-align:center;
+    box-shadow:0 0 60px rgba(200,146,42,0.08);
+  }
+  .cup { font-size:56px; margin-bottom:1.25rem; line-height:1; }
+  h1 { font-size:1.5rem; font-weight:normal; letter-spacing:0.04em; color:var(--gold-lt); margin-bottom:0.35rem; }
+  .subtitle { font-size:0.85rem; color:var(--muted); margin-bottom:1.75rem; letter-spacing:0.02em; }
+
+  .state { display:none; }
+  .state.active { display:block; }
+
+  .spinner { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 1rem; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .field-label { font-size:0.75rem; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; text-align:left; margin-bottom:6px; }
+
+  input[type="text"], select {
+    width:100%; padding:11px 14px; background:var(--surface);
+    border:1px solid var(--border); border-radius:10px; color:var(--cream);
+    font-family:var(--font); font-size:1rem; margin-bottom:1rem; outline:none;
+    transition:border-color 0.2s;
+  }
+  input[type="text"]:focus, select:focus { border-color:var(--gold); }
+  input[type="text"]::placeholder { color:var(--muted); }
+  select { appearance:none; -webkit-appearance:none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%238a7a60' d='M6 8L0 0h12z'/></svg>"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+
+  button {
+    width:100%; padding:14px; background:var(--gold); color:#1a0e00;
+    border:none; border-radius:10px; font-family:var(--font); font-size:1.05rem;
+    font-weight:bold; letter-spacing:0.03em; cursor:pointer;
+    transition:background 0.15s, transform 0.1s; margin-bottom:8px;
+  }
+  button:hover { background:var(--gold-lt); }
+  button:active { transform:scale(0.98); }
+  button.secondary { background:var(--surface); color:var(--cream); border:1px solid var(--border); font-weight:normal; font-size:0.9rem; padding:10px; }
+  button.secondary:hover { background:var(--card); }
+
+  .tick-circle { width:64px; height:64px; border-radius:50%; background:rgba(100,190,120,0.15); border:2px solid rgba(100,190,120,0.4); display:flex; align-items:center; justify-content:center; margin:0 auto 1.25rem; font-size:30px; }
+  .success-name { font-size:1.2rem; color:var(--gold-lt); margin-bottom:0.25rem; }
+  .shot-badge { display:inline-block; padding:4px 14px; background:rgba(200,146,42,0.15); border:1px solid rgba(200,146,42,0.3); border-radius:99px; font-size:0.8rem; color:var(--gold-lt); margin-bottom:1.5rem; letter-spacing:0.04em; }
+  .running-total { font-size:0.8rem; color:var(--muted); margin-top:1.25rem; }
+  .running-total strong { color:var(--cream); }
+  .error-msg { font-size:0.85rem; color:#e07060; margin-top:0.75rem; }
+  .wordmark { margin-top:2rem; font-size:0.7rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; }
+
+  .who { font-size:1.4rem; color:var(--gold-lt); margin-bottom:0.4rem; }
+  .who-q { font-size:0.85rem; color:var(--muted); margin-bottom:1.5rem; }
+</style>
+</head>
+<body>
+
+<div class="dev-banner">⚠ Development — uses live database</div>
+
+<div class="card">
+  <div class="cup">☕</div>
+  <h1 id="card-title">Single Shot</h1>
+  <p class="subtitle">Espresso Club</p>
+
+  <div class="state active" id="state-loading">
+    <div class="spinner"></div>
+    <p style="color:var(--muted); font-size:0.85rem;">Loading…</p>
+  </div>
+
+  <div class="state" id="state-confirm">
+    <div class="who-q">Logging this shot for:</div>
+    <div class="who" id="confirm-name">—</div>
+    <button onclick="logIdentifiedShot()">Confirm — log my shot</button>
+    <button class="secondary" onclick="showSwitchUser()">That's not me</button>
+  </div>
+
+  <div class="state" id="state-pick">
+    <div class="field-label">Who are you?</div>
+    <select id="member-select">
+      <option value="">— select your name —</option>
+    </select>
+    <div style="text-align:left; margin:0.5rem 0 1rem; font-size:0.8rem; color:var(--muted);">
+      Or, if you're new:
+    </div>
+    <div class="field-label">Add me as a new member</div>
+    <input type="text" id="new-name-input" placeholder="Your name" autocapitalize="words"/>
+    <button onclick="proceedFromPick()">Continue</button>
+    <p class="error-msg" id="pick-error" style="display:none;"></p>
+  </div>
+
+  <div class="state" id="state-success">
+    <div class="tick-circle">✓</div>
+    <div class="success-name" id="success-name"></div>
+    <div class="shot-badge" id="success-badge">1 × single shot</div>
+    <p style="font-size:0.85rem; color:var(--muted); line-height:1.6;">Logged successfully.<br>See you tomorrow.</p>
+    <div class="running-total" id="running-total"></div>
+  </div>
+
+  <div class="state" id="state-error">
+    <p style="color:#e07060; font-size:0.9rem; line-height:1.6;" id="error-detail">Something went wrong.</p>
+    <button class="secondary" onclick="location.reload()" style="margin-top:1rem;">Retry</button>
+  </div>
+</div>
+
+<div class="wordmark">The Espresso Club — DEV</div>
+
+<script>
+const SHOT_TYPE = 'single';
+const TOKEN_KEY = 'espresso-client-token';
+
+function showState(name) {
+  document.querySelectorAll('.state').forEach(el => el.classList.remove('active'));
+  document.getElementById('state-' + name).classList.add('active');
+}
+
+function showError(msg) {
+  document.getElementById('error-detail').textContent = msg;
+  showState('error');
+}
+
+function newClientToken() {
+  const arr = new Uint8Array(16);
+  if (window.crypto && window.crypto.getRandomValues) {
+    crypto.getRandomValues(arr);
+  } else {
+    for (let i = 0; i < 16; i++) arr[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function getOrMakeToken() {
+  let t = localStorage.getItem(TOKEN_KEY);
+  if (!t) {
+    t = newClientToken();
+    localStorage.setItem(TOKEN_KEY, t);
+  }
+  return t;
+}
+
+function getDeviceId() {
+  const raw = [
+    navigator.userAgent || '',
+    navigator.language || '',
+    (screen.width || 0) + 'x' + (screen.height || 0),
+    screen.colorDepth || 0,
+    (Intl && Intl.DateTimeFormat) ? Intl.DateTimeFormat().resolvedOptions().timeZone : '',
+    navigator.hardwareConcurrency || '',
+    navigator.platform || ''
+  ].join('|');
+  let h1 = 0x811c9dc5, h2 = 0xdeadbeef;
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw.charCodeAt(i);
+    h1 = ((h1 ^ c) * 16777619) >>> 0;
+    h2 = ((h2 ^ c) * 2246822519) >>> 0;
+  }
+  const pad = (n) => n.toString(16).padStart(8, '0');
+  return (pad(h1) + pad(h2) + pad((h1 ^ h2) >>> 0) + pad((h1 + h2) >>> 0) + pad((h1 * 31 + h2) >>> 0)).slice(0, 40);
+}
+
+async function sb(path, method, body, extra) {
+  const headers = {
+    'apikey': SUPABASE_ANON,
+    'Authorization': 'Bearer ' + SUPABASE_ANON,
+    'Content-Type': 'application/json',
+  };
+  if (method === 'POST' || method === 'PATCH') headers['Prefer'] = 'return=representation';
+  if (extra) Object.assign(headers, extra);
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const text = await res.text();
+  return { ok: res.ok, status: res.status, data: text ? JSON.parse(text) : null };
+}
+
+let currentMember = null;
+let allMembers = [];
+let clientToken = null;
+let deviceId = null;
+
+async function resolveIdentity() {
+  clientToken = getOrMakeToken();
+  deviceId = getDeviceId();
+
+  const tokenLookup = await sb('members?client_token=eq.' + encodeURIComponent(clientToken) + '&select=id,name', 'GET');
+  if (tokenLookup.ok && tokenLookup.data && tokenLookup.data.length) {
+    return { mode: 'token', member: tokenLookup.data[0] };
+  }
+
+  const fpLookup = await sb('members?device_id=eq.' + encodeURIComponent(deviceId) + '&client_token=is.null&select=id,name', 'GET');
+  if (fpLookup.ok && fpLookup.data && fpLookup.data.length) {
+    return { mode: 'fingerprint', member: fpLookup.data[0] };
+  }
+
+  return { mode: 'none', member: null };
+}
+
+async function loadAllMembers() {
+  const r = await sb('members?select=id,name&order=name', 'GET');
+  allMembers = r.ok ? (r.data || []) : [];
+  const sel = document.getElementById('member-select');
+  sel.innerHTML = '<option value="">— select your name —</option>' +
+    allMembers.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+}
+
+async function logShotForMember(memberId) {
+  return sb('shots', 'POST', {
+    device_id: deviceId,
+    member_id: memberId,
+    shot_type: SHOT_TYPE,
+  });
+}
+
+async function getMonthlyShotCount(memberId) {
+  const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const r = await sb('shots?member_id=eq.' + memberId + '&logged_at=gte.' + start + '&select=shot_type', 'GET');
+  if (!r.ok || !r.data) return null;
+  return {
+    singles: r.data.filter(s => s.shot_type === 'single').length,
+    doubles: r.data.filter(s => s.shot_type === 'double').length,
+  };
+}
+
+async function logIdentifiedShot() {
+  if (!currentMember) return;
+  showState('loading');
+
+  await sb('members?id=eq.' + currentMember.id, 'PATCH', {
+    client_token: clientToken,
+    device_id: deviceId,
+  });
+
+  const r = await logShotForMember(currentMember.id);
+  if (!r.ok) { showError('Could not log shot. Try again.'); return; }
+
+  const counts = await getMonthlyShotCount(currentMember.id);
+  showSuccess(currentMember.name, counts || { singles: SHOT_TYPE === 'single' ? 1 : 0, doubles: SHOT_TYPE === 'double' ? 1 : 0 });
+}
+
+async function showSwitchUser() {
+  showState('loading');
+  if (!allMembers.length) await loadAllMembers();
+  showState('pick');
+}
+
+async function proceedFromPick() {
+  const memberId = document.getElementById('member-select').value;
+  const newName  = document.getElementById('new-name-input').value.trim();
+
+  if (!memberId && !newName) {
+    const err = document.getElementById('pick-error');
+    err.textContent = 'Please pick your name from the list, or enter a new name.';
+    err.style.display = 'block';
+    return;
+  }
+
+  showState('loading');
+
+  if (memberId) {
+    await sb('members?client_token=eq.' + encodeURIComponent(clientToken), 'PATCH', { client_token: null });
+    await sb('members?id=eq.' + memberId, 'PATCH', {
+      client_token: clientToken,
+      device_id: deviceId,
+    });
+    currentMember = { id: memberId, name: allMembers.find(m => m.id === memberId).name };
+  } else {
+    const r = await sb('members', 'POST', {
+      name: newName,
+      client_token: clientToken,
+      device_id: deviceId,
+    });
+    if (!r.ok || !r.data || !r.data[0]) { showError('Could not register. Try again.'); return; }
+    currentMember = { id: r.data[0].id, name: r.data[0].name };
+  }
+
+  const shotR = await logShotForMember(currentMember.id);
+  if (!shotR.ok) { showError('Could not log shot. Try again.'); return; }
+
+  const counts = await getMonthlyShotCount(currentMember.id);
+  showSuccess(currentMember.name, counts || { singles: 0, doubles: 0 });
+}
+
+function showSuccess(name, counts) {
+  document.getElementById('success-name').textContent = name;
+  document.getElementById('success-badge').textContent = SHOT_TYPE === 'single' ? '1 × single shot' : '1 × double shot';
+
+  const total = counts.singles + counts.doubles;
+  if (total > 0) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const mo = months[new Date().getMonth()];
+    document.getElementById('running-total').innerHTML =
+      'Your ' + mo + ' tally: <strong>' + counts.singles + ' single' + (counts.singles !== 1 ? 's' : '') +
+      ', ' + counts.doubles + ' double' + (counts.doubles !== 1 ? 's' : '') + '</strong>';
+  }
+
+  showState('success');
+}
+
+async function init() {
+  try {
+    const result = await resolveIdentity();
+
+    if (result.mode === 'token' || result.mode === 'fingerprint') {
+      currentMember = result.member;
+      document.getElementById('confirm-name').textContent = currentMember.name;
+      showState('confirm');
+    } else {
+      await loadAllMembers();
+      showState('pick');
+    }
+  } catch (e) {
+    showError('Connection error: ' + e.message);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
